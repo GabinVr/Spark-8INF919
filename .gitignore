@@ -1,7 +1,6 @@
 .venv
 intrusion_data/
 graph.py
-./log.txt
+log.txt
 *.png
-*.txt
 .DS_Store
