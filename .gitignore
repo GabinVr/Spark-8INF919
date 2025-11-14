@@ -4,3 +4,4 @@ graph.py
 log.txt
 *.png
 .DS_Store
+*.json
