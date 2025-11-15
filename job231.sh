@@ -28,7 +28,7 @@ slaves_pid=$!
 # Activate python virtual environment
 source .venv/bin/activate
 
-SLURM_SPARK_SUBMIT="srun -n 1 -N 1 spark-submit --master ${MASTER_URL} --executor-memory ${SLURM_SPARK_MEM}M baseline_experiment.py"
+SLURM_SPARK_SUBMIT="srun -n 1 -N 1 spark-submit --master ${MASTER_URL} --executor-memory ${SLURM_SPARK_MEM}M baseline_method.py"
 $SLURM_SPARK_SUBMIT --nodes 4
 
 
