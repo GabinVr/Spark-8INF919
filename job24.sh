@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --account=def-sponsor00
-#SBATCH --time=00:30:00
+#SBATCH --time=02:30:00
 #SBATCH --nodes=4
-#SBATCH --mem=4G
+#SBATCH --mem=8G
 #SBATCH --cpus-per-task=8
 #SBATCH --ntasks-per-node=1
 
