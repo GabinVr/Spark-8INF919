@@ -20,7 +20,7 @@ current_path = os.path.dirname(os.path.abspath(__file__))
 
 parser = argparse.ArgumentParser(description='Run cluster experiment')
 parser.add_argument('-n', '--nodes', type=int,
-                    help='Number of nodes to test')
+                    help='Number of nodes to test', default=2)
 args = parser.parse_args()
 
 logger.info(f"Starting cluster experiment with {args.nodes} nodes")

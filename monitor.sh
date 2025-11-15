@@ -11,24 +11,37 @@ while true; do
     echo "[$TIMESTAMP] Jobs for user: $USERNAME"
     echo "========================================="
 
-    sq | awk -v user="$USERNAME" '
-        NR==1 { next }          # on saute l en-tete original
-        $2 == user {
-            state = $5
-            if (state == "R") state_text = "en cours d execution"
-            else if (state == "PD") state_text = "en attente"
-            else if (state == "CG") state_text = "en cours de completion"
-            else if (state == "CD") state_text = "termine"
-            else if (state == "CA") state_text = "annule"
-            else if (state == "F") state_text = "echoue"
-            else state_text = "etat " state
-            
-            printf "Le job %s (%s) est %s", $1, $4, state_text
-            if ($6 != "") printf " - temps restant: %s", $6
-            printf "\n"
-        }
-    '
-    
+    # On parcourt les jobs de l'utilisateur avec awk et on affiche aussi la fin du fichier slurm-$JOBID.out
+    sq | awk -v user="$USERNAME" 'NR==1 { next } $2 == user { print $1, $4, $5, $6 }' | while read -r JOB_ID JOB_NAME JOB_STATE TIME_LEFT; do
+        # Traduction de l'état
+        case "$JOB_STATE" in
+            R)  STATE_TEXT="en cours d execution" ;;
+            PD) STATE_TEXT="en attente" ;;
+            CG) STATE_TEXT="en cours de completion" ;;
+            CD) STATE_TEXT="termine" ;;
+            CA) STATE_TEXT="annule" ;;
+            F)  STATE_TEXT="echoue" ;;
+            *)  STATE_TEXT="etat $JOB_STATE" ;;
+        esac
+
+        # Ligne d'état du job
+        if [ -n "$TIME_LEFT" ]; then
+            echo "Le job $JOB_ID ($JOB_NAME) est $STATE_TEXT - temps restant: $TIME_LEFT"
+        else
+            echo "Le job $JOB_ID ($JOB_NAME) est $STATE_TEXT"
+        fi
+
+        # Affichage des dernières lignes du fichier de log associé
+        LOG_FILE="slurm-${JOB_ID}.out"
+        if [ -f "$LOG_FILE" ]; then
+            echo "--- Dernières lignes de $LOG_FILE ---"
+            tail -n 5 "$LOG_FILE"
+        else
+            echo "(Fichier de log $LOG_FILE non encore créé)"
+        fi
+        echo "-----------------------------------------"
+    done
+
     # Afficher un message si aucun job n'est trouvé
     job_count=$(sq | awk -v user="$USERNAME" 'NR>1 && $2==user {count++} END {print count+0}')
     if [ "$job_count" -eq 0 ]; then
