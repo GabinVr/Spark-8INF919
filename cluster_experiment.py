@@ -2,18 +2,40 @@ from scalability_experiment import ClusterExperimentRunner, \
 MRTreeModelTrainer, IntrusionDataloader, IntrusionPreprocessor
 import argparse
 import json
+import os
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('cluster_experiment.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+current_path = os.path.dirname(os.path.abspath(__file__))
 
 parser = argparse.ArgumentParser(description='Run cluster experiment')
 parser.add_argument('-n', '--nodes', type=int,
                     help='Number of nodes to test')
 args = parser.parse_args()
 
+logger.info(f"Starting cluster experiment with {args.nodes} nodes")
 
 SEED = 42
+logger.info(f"Initializing experiment runner with seed {SEED}")
 runner = ClusterExperimentRunner(IntrusionDataloader, IntrusionPreprocessor,
                                  MRTreeModelTrainer, seed=SEED)
+
+logger.info("Running experiment...")
 runner.run(args.nodes, K=[1], full_dataset=True)
-runner.save_plot(f'cluster_experiment_adult_mrtree_{args.nodes}_nodes.png')
+
+save_path = os.path.join(current_path, f'cluster_experiment_adult_mrtree_{args.nodes}_nodes.json')
+logger.info(f"Saving metrics to {save_path}")
+runner.save_metrics(save_path)
 
 print("="*40)
 print(f"Résumé des métriques de l'expérience sur le cluster avec {args.nodes} nœuds :")
@@ -21,3 +43,4 @@ metrics = runner.get_metrics()
 print(json.dumps(metrics, indent=4))
 print("="*40)
 
+logger.info("Cluster experiment completed successfully")
