@@ -321,7 +321,9 @@ class ClusterExperimentRunner(AbstractExperimentRunner):
             file_size_bytes = data_loader.size_data(data) if data_loader.size_data(data) > 0 else 1
             base_size_bytes = bytes_per_unit
             print(f"File size in bytes: {file_size_bytes}, base size in bytes: {base_size_bytes}")
-
+            if file_size_bytes < base_size_bytes:
+                print(f"The requested base size ({base_size_bytes} bytes) is larger than the dataset size ({file_size_bytes} bytes). Using full dataset instead.")
+                base_size_bytes = file_size_bytes
             # Fraction pour obtenir un sous-ensemble de taille ~ base_size_bytes
             fraction = base_size_bytes / file_size_bytes
             base_subset_data = data.sample(fraction=fraction).cache()
