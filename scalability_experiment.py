@@ -386,9 +386,9 @@ class ClusterExperimentRunner(AbstractExperimentRunner):
             # try to retreive job id from slurm to differentiate traces
             if 'SLURM_JOB_ID' in os.environ:
                 job_id = os.environ['SLURM_JOB_ID']
-                self.save_trace(f"cluster_experiment_trace_job_{job_id}_scale_{i+1}.json")
+                self.save_trace(f"cluster_experiment_trace_job_{job_id}_scale_{i+1}_node{number_of_nodes}.json")
             else:
-                self.save_trace(f"cluster_experiment_trace_scale_{i+1}.json")
+                self.save_trace(f"cluster_experiment_trace_scale_{i+1}_node{number_of_nodes}.json")
 
         print(f"Final cluster metrics: {self.metrics}")
         spark_builder.stop_session()
