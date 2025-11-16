@@ -382,9 +382,13 @@ class ClusterExperimentRunner(AbstractExperimentRunner):
 
             current_scale = scale
             print(f"______________________ TO.  {subset_dataset.count()} rows.")
-
             # Sauvegarde la trace après chaque étape pour analyse ultérieure
-            self.save_trace(f"cluster_experiment_trace_scale_{i+1}.json")
+            # try to retreive job id from slurm to differentiate traces
+            if 'SLURM_JOB_ID' in os.environ:
+                job_id = os.environ['SLURM_JOB_ID']
+                self.save_trace(f"cluster_experiment_trace_job_{job_id}_scale_{i+1}.json")
+            else:
+                self.save_trace(f"cluster_experiment_trace_scale_{i+1}.json")
 
         print(f"Final cluster metrics: {self.metrics}")
         spark_builder.stop_session()
