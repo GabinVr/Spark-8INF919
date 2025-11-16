@@ -11,6 +11,10 @@ import pandas as pd
 # print("Filtered dataset saved to 'filtered_dataset.csv'")
 
 # lets shuffle and split the dataset in 2 to reduce its size for testing purpose
-df = pd.read_csv("./intrusion_data/NF-ToN-IoT-v2-train.csv")
-df = df.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle the DataFrame
-df.to_csv("./intrusion_data/NF-ToN-IoT-v2-train-shuffled.csv", index=False)
+# df = pd.read_csv("./intrusion_data/NF-ToN-IoT-v2-train.csv")
+# df = df.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle the DataFrame
+# df.to_csv("./intrusion_data/NF-ToN-IoT-v2-train-shuffled.csv", index=False)
+# let's split this in half to be more gentle with the cluster ressources
+df = pd.read_csv("./intrusion_data/NF-ToN-IoT-v2-train-shuffled.csv")
+df = df.iloc[:len(df)//2]
+df.to_csv("./intrusion_data/NF-ToN-IoT-v2-train-shuffled-half.csv", index=False)

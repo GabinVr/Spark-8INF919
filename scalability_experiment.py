@@ -68,7 +68,7 @@ class BaseDataloader():
         return self.target_col
 
 class IntrusionDataloader(BaseDataloader):
-    def __init__(self, spark_session, file_path="./intrusion_data/NF-ToN-IoT-v2-train-shuffled.csv"):
+    def __init__(self, spark_session, file_path="./intrusion_data/NF-ToN-IoT-v2-train-shuffled-half,csv"):
         super().__init__(spark_session, file_path)
         self.numeric_cols = None
         self.categorical_cols = None
