@@ -3,6 +3,7 @@
 from scalability_experiment import IntrusionDataloader, IntrusionPreprocessor, ClusterExperimentRunner, MRTreeModelTrainer
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import cross_val_score, GridSearchCV
+from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import time
 import json
@@ -14,7 +15,7 @@ args = parser.parse_args()
 
 class DecisionTreeBaselineMethod:
     def __init__(self):
-        self.model = DecisionTreeClassifier()
+        self.model = DecisionTreeClassifier(random_state=42)
 
     def train(self, train_df: pd.DataFrame, feature_cols: list, label_col: str):
         X_train = train_df[feature_cols]
@@ -71,7 +72,14 @@ def experiment():
     dataset = IntrusionDataset()
     df = dataset.get_data()
     print("Données chargées.")
-    feature_columns = [col for col in df.columns if col != 'Attack']
+    le_ip_src = LabelEncoder()
+    le_ip_dst = LabelEncoder()
+    le_attack = LabelEncoder()
+    categorical_cols = ["Attack", "IPV4_SRC_ADDR", "IPV4_DST_ADDR"]
+    feature_columns = [col for col in df.columns if col not in categorical_cols]
+    df["IPV4_SRC_ADDR"] = le_ip_src.fit_transform(df["IPV4_SRC_ADDR"])
+    df["IPV4_DST_ADDR"] = le_ip_dst.fit_transform(df["IPV4_DST_ADDR"])
+    df["Attack"] = le_attack.fit_transform(df["Attack"])
     label_column = 'Attack'
     train_size = int(0.8 * len(df))
     train_df = df.iloc[:train_size]
