@@ -5,3 +5,4 @@ log.txt
 *.png
 .DS_Store
 *.json
+__pycache__/

@@ -78,6 +78,7 @@ class IntrusionDataloader(BaseDataloader):
             .option("inferSchema", "true")\
             .option("header", "true")\
             .csv(self.file_path)
+        data.drop("Label", inplace=True)
         self.categorical_cols = ["Attack", "IPV4_SRC_ADDR", "IPV4_DST_ADDR"]
         self.numeric_cols = [field.name for field in data.schema.fields if field.name not in self.categorical_cols]
         self.set_target_col("Attack")
