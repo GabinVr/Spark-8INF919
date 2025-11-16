@@ -5,8 +5,6 @@
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=8
 #SBATCH --ntasks-per-node=1
-#SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --mail-user=gvrillault@etu.uqac.ca
 
 module load StdEnv/2023
 module load scipy-stack
