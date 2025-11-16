@@ -5,6 +5,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import cross_val_score, GridSearchCV
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
+import numpy as np
 import time
 import json
 import argparse
@@ -19,10 +20,19 @@ class DecisionTreeBaselineMethod:
 
     def train(self, train_df: pd.DataFrame, feature_cols: list, label_col: str):
         X_train = train_df[feature_cols]
+        # Replace inf/-inf and fill NaNs with column medians
+        X_train = X_train.replace([np.inf, -np.inf], np.nan)
+        if X_train.isna().any().any():
+            medians = X_train.median()
+            X_train = X_train.fillna(medians)
+            print(f"Filled {X_train.isna().sum().sum()} NaNs in X_train with medians")
+        # Ensure numeric dtype
+        X_train = X_train.astype(np.float64)
+        print(f"X_train dtype {X_train.dtypes.to_dict()} ; max abs value {np.nanmax(np.abs(X_train.values)) if X_train.size else 'N/A'}")
         y_train = train_df[label_col]
         self.model.fit(X_train, y_train)
 
-    def evaluate(self, test_df: pd.DataFrame, feature_cols: list, label_col: str) -> float:
+    def evaluate(self, train_df: pd.DataFrame, test_df: pd.DataFrame, feature_cols: list, label_col: str) -> float:
         """
         Cross-validation evaluation of the model on the test dataset.
         """
@@ -31,8 +41,22 @@ class DecisionTreeBaselineMethod:
         # scores = cross_val_score(self.model, X_test, y_test, cv=5, scoring='accuracy').mean()
         # print(f"Test scores: {scores}")
         # print(f"Mean : {scores.mean()}")    
+        # Prepare training and testing sets
+        X_train = train_df[feature_cols]
+        y_train = train_df[label_col]
         X_test = test_df[feature_cols]
         y_test = test_df[label_col]
+        # replace inf/-inf and fill NaNs with medians
+        X_train = X_train.replace([np.inf, -np.inf], np.nan)
+        X_test = X_test.replace([np.inf, -np.inf], np.nan)
+        if X_train.isna().any().any():
+            medians = X_train.median()
+            X_train = X_train.fillna(medians)
+            X_test = X_test.fillna(medians)
+            print(f"Filled NaNs in X_train/X_test using medians")
+        # convert types
+        X_train = X_train.astype(np.float64)
+        X_test = X_test.astype(np.float64)
         param_grid = {
             "max_depth": [3, 5, 10, 20],
             "min_samples_split": [100, 255, 500],
@@ -48,7 +72,8 @@ class DecisionTreeBaselineMethod:
             scoring="accuracy"
         )
         time_start = time.time()
-        grid.fit(X_test, y_test)
+        # Fit the grid on the training set, then evaluate on the held-out test set
+        grid.fit(X_train, y_train)
         time_end = time.time()
         print(f"Grid search time: {time_end - time_start:.2f} seconds")
         print(f"Best parameters: {grid.best_params_}")
@@ -76,26 +101,27 @@ def experiment():
     le_ip_dst = LabelEncoder()
     le_attack = LabelEncoder()
     categorical_cols = ["Attack", "IPV4_SRC_ADDR", "IPV4_DST_ADDR"]
-    feature_columns = [col for col in df.columns if col not in categorical_cols]
     df["IPV4_SRC_ADDR"] = le_ip_src.fit_transform(df["IPV4_SRC_ADDR"])
     df["IPV4_DST_ADDR"] = le_ip_dst.fit_transform(df["IPV4_DST_ADDR"])
     df["Attack"] = le_attack.fit_transform(df["Attack"])
     label_column = 'Attack'
+    # After encoding categorical columns, select only numeric features for sklearn
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    feature_columns = [col for col in numeric_cols if col != label_column]
     train_size = int(0.8 * len(df))
-    train_df = df.iloc[:train_size]
-    test_df = df.iloc[train_size:]
-    print(f"Train set size: {len(train_df)}, Test set size: {len(test_df)}")
+    train_df_sklearn = df.iloc[:train_size]
+    test_df_sklearn = df.iloc[train_size:]
     baseline_method = DecisionTreeBaselineMethod()
     print("Entraînement du modèle...")
     start_time = time.time()
-    baseline_method.train(train_df, feature_columns, label_column)
+    baseline_method.train(train_df_sklearn, feature_columns, label_column)
     training_time = time.time() - start_time
     metrics['sklearn'] = {}
     metrics['sklearn']['training_time_seconds'] = training_time
     print(f"Modèle Sklearn entraîné en {training_time:.2f} secondes.")
     print("Évaluation du modèle...")
     start_time = time.time()
-    accuracy = baseline_method.evaluate(test_df, feature_columns, label_column)
+    accuracy = baseline_method.evaluate(train_df_sklearn, test_df_sklearn, feature_columns, label_column)
     evaluation_time = time.time() - start_time
     metrics['sklearn']['evaluation_time_seconds'] = evaluation_time
     metrics['sklearn']['accuracy'] = accuracy
