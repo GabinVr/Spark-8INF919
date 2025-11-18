@@ -9,6 +9,8 @@ import numpy as np
 import time
 import json
 import argparse
+import os
+
 parser = argparse.ArgumentParser(description='Run baseline experiment with Decision Tree Classifier')
 parser.add_argument('-n', '--nodes', type=int,
                     help='Number of nodes to test')
@@ -56,61 +58,10 @@ class IntrusionDataset:
         return self.df
 
 
-def experiment():
+def experiment(skip_sklearn: bool = False):
     metrics = {}
     print("Expérience Decision Tree avec Scikit-Learn VS MRTree de Spark MLlib")
     print(f"Expérience avec {args.nodes} nœuds.")
-    dataset = IntrusionDataset()
-    df = dataset.get_data()
-    print("Premières lignes du dataset :")
-    print(df.head(5))
-    print("Données chargées.")
-    
-    # Drop colonnes non-utiles
-    categorical_cols = ["IPV4_SRC_ADDR", "IPV4_DST_ADDR", "Label", "SRC_TO_DST_SECOND_BYTES", "DST_TO_SRC_SECOND_BYTES"]
-    df.drop(columns=categorical_cols, inplace=True)
-    
-    # Encode la label AVANT de nettoyer (sinon risque de confusion)
-    le_attack = LabelEncoder()
-    df["Attack"] = le_attack.fit_transform(df["Attack"])
-    label_column = 'Attack'
-    
-    df = df.replace([np.inf, -np.inf], np.nan)
-    
-    for col in df.columns:
-        if df[col].dtype in [np.float64, np.float32, np.int64, np.int32]:
-            nan_count = df[col].isna().sum()
-            if nan_count > 0:
-                median_val = df[col].median()
-                df[col].fillna(median_val, inplace=True)
-    
-    # Maintenant, sélectionner les features numériques
-    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-    feature_columns = [col for col in numeric_cols if col != label_column]
-    
-    # Split train/test
-    train_size = int(0.8 * len(df))
-    train_df_sklearn = df.iloc[:train_size].copy()
-    test_df_sklearn = df.iloc[train_size:].copy()
-    
-    baseline_method = DecisionTreeBaselineMethod()
-    print("\nEntraînement du modèle...")
-    start_time = time.time()
-    baseline_method.train(train_df_sklearn, feature_columns, label_column)
-    training_time = time.time() - start_time
-    metrics['sklearn'] = {}
-    metrics['sklearn']['training_time_seconds'] = training_time
-    print(f"Modèle Sklearn entraîné en {training_time:.2f} secondes.")
-    
-    print("Évaluation du modèle...")
-    start_time = time.time()
-    accuracy = baseline_method.evaluate(train_df_sklearn, test_df_sklearn, feature_columns, label_column)
-    evaluation_time = time.time() - start_time
-    metrics['sklearn']['evaluation_time_seconds'] = evaluation_time
-    metrics['sklearn']['accuracy'] = accuracy
-    print(f"Modèle évalué en {evaluation_time:.2f} secondes.")
-    print(f"Précision du modèle Sklearn sur le jeu de test : {accuracy:.4f}")
-    
     print("\n" + "="*60)
     print("Maintenant, entraînement et évaluation avec MRTree de Spark MLlib...")
     print("="*60 + "\n")
@@ -123,15 +74,78 @@ def experiment():
     print("Résultats de Spark MLlib MRTree :")
     print(f"Temps d'entraînement : {metrics['spark']['training_time_seconds']:.2f} secondes.")
     print(f"Précision : {metrics['spark']['accuracy']:.4f}")
+    
+    if not skip_sklearn:
+        print("\n" + "="*60)
+        print("Maintenant, entraînement et évaluation avec Decision Tree de Scikit-Learn...")
+        print("="*60 + "\n")
+                    
+        dataset = IntrusionDataset()
+        df = dataset.get_data()
+        print("Premières lignes du dataset :")
+        print(df.head(5))
+        print("Données chargées.")
+        
+        # Drop colonnes non-utiles
+        categorical_cols = ["IPV4_SRC_ADDR", "IPV4_DST_ADDR", "Label", "SRC_TO_DST_SECOND_BYTES", "DST_TO_SRC_SECOND_BYTES"]
+        df.drop(columns=categorical_cols, inplace=True)
+        
+        # Encode la label AVANT de nettoyer (sinon risque de confusion)
+        le_attack = LabelEncoder()
+        df["Attack"] = le_attack.fit_transform(df["Attack"])
+        label_column = 'Attack'
+        
+        df = df.replace([np.inf, -np.inf], np.nan)
+        
+        for col in df.columns:
+            if df[col].dtype in [np.float64, np.float32, np.int64, np.int32]:
+                nan_count = df[col].isna().sum()
+                if nan_count > 0:
+                    median_val = df[col].median()
+                    df[col].fillna(median_val, inplace=True)
+        
+        # Maintenant, sélectionner les features numériques
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        feature_columns = [col for col in numeric_cols if col != label_column]
+        
+        # Split train/test
+        train_size = int(0.8 * len(df))
+        train_df_sklearn = df.iloc[:train_size].copy()
+        test_df_sklearn = df.iloc[train_size:].copy()
+        
+        baseline_method = DecisionTreeBaselineMethod()
+        print("\nEntraînement du modèle...")
+        start_time = time.time()
+        baseline_method.train(train_df_sklearn, feature_columns, label_column)
+        training_time = time.time() - start_time
+        metrics['sklearn'] = {}
+        metrics['sklearn']['training_time_seconds'] = training_time
+        print(f"Modèle Sklearn entraîné en {training_time:.2f} secondes.")
+        
+        print("Évaluation du modèle...")
+        start_time = time.time()
+        accuracy = baseline_method.evaluate(train_df_sklearn, test_df_sklearn, feature_columns, label_column)
+        evaluation_time = time.time() - start_time
+        metrics['sklearn']['evaluation_time_seconds'] = evaluation_time
+        metrics['sklearn']['accuracy'] = accuracy
+        print(f"Modèle évalué en {evaluation_time:.2f} secondes.")
+        print(f"Précision du modèle Sklearn sur le jeu de test : {accuracy:.4f}")
+
+
     print(f"Fin de l'expérience.")
     
     return metrics
 
 if __name__ == "__main__":
-    experiment_metrics = experiment()
+    experiment_metrics = experiment(skip_sklearn=True)
     print("="*40)
     print("Résumé des métriques de l'expérience Non-Distribuée vs Distribuée :")
     print(json.dumps(experiment_metrics, indent=4))
     print("="*40)
-    with open(f"baseline_experiment_metrics_node{args.nodes}.json"):
+    if os.environ.get('SLURM_JOB_ID'):
+        save_path = f"baseline_experiment_metrics_node{args.nodes}_slurm_{os.environ['SLURM_JOB_ID']}.json"
+    else:
+        save_path = f"baseline_experiment_metrics_node{args.nodes}.json"
+
+    with open(save_path, 'w') as f:
         json.dump(experiment_metrics, f, indent=4)
