@@ -292,16 +292,16 @@ class LocalExperimentRunner(AbstractExperimentRunner):
                 "training_time_seconds": elapsed,
                 "evaluation_time_seconds": elapsed_eval,
             }
+            self.save_trace(f"local_experiment_trace_scale_{i+1}.json")
             if scale is None:
                 break
-            
+
             print(f"Dataset size increased FROM {subset_dataset.count()} rows.")
             nb_replications = scale - current_scale
             for _ in range(nb_replications):
                 subset_dataset = subset_dataset.union(base_subset_data).cache()
             current_scale = scale
             print(f"______________________ TO.  {subset_dataset.count()} rows.")
-            self.save_trace(f"local_experiment_trace_scale_{i+1}.json")
         print(f"Final metrics: {self.metrics}")
         spark_builder.stop_session()
 
@@ -375,6 +375,11 @@ class ClusterExperimentRunner(AbstractExperimentRunner):
                 "evaluation_time_seconds": elapsed_eval,
                 "number_of_nodes": number_of_nodes,
             }
+            if 'SLURM_JOB_ID' in os.environ:
+                job_id = os.environ['SLURM_JOB_ID']
+                self.save_trace(f"cluster_experiment_trace_job_{job_id}_scale_{i+1}_node{number_of_nodes}.json")
+            else:
+                self.save_trace(f"cluster_experiment_trace_scale_{i+1}_node{number_of_nodes}.json")
 
             if scale is None:
                 break
@@ -390,11 +395,6 @@ class ClusterExperimentRunner(AbstractExperimentRunner):
             print(f"______________________ TO.  {subset_dataset.count()} rows.")
             # Sauvegarde la trace après chaque étape pour analyse ultérieure
             # try to retreive job id from slurm to differentiate traces
-            if 'SLURM_JOB_ID' in os.environ:
-                job_id = os.environ['SLURM_JOB_ID']
-                self.save_trace(f"cluster_experiment_trace_job_{job_id}_scale_{i+1}_node{number_of_nodes}.json")
-            else:
-                self.save_trace(f"cluster_experiment_trace_scale_{i+1}_node{number_of_nodes}.json")
 
         print(f"Final cluster metrics: {self.metrics}")
         spark_builder.stop_session()
