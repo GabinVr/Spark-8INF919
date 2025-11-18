@@ -41,7 +41,7 @@ runner.save_metrics(save_path)
 
 print("="*40)
 print(f"Résumé des métriques de l'expérience sur le cluster avec {args.nodes} nœuds :")
-metrics = runner.get_metrics()
+metrics = runner.save_trace()
 print(json.dumps(metrics, indent=4))
 print("="*40)
 

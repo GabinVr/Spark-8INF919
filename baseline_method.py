@@ -68,7 +68,7 @@ def experiment(skip_sklearn: bool = False):
     
     spark_runner = ClusterExperimentRunner(IntrusionDataloader, IntrusionPreprocessor, MRTreeModelTrainer, seed=42)
     spark_runner.run(args.nodes, K=[1], full_dataset=True)
-    spark_metrics = spark_runner.get_metrics()
+    spark_metrics = spark_runner.save_trace()
     metrics['spark'] = spark_metrics[1]
     
     print("Résultats de Spark MLlib MRTree :")
