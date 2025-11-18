@@ -32,7 +32,10 @@ runner = ClusterExperimentRunner(IntrusionDataloader, IntrusionPreprocessor,
 logger.info("Running experiment...")
 runner.run(args.nodes, K=[1], full_dataset=True)
 
-save_path = os.path.join(current_path, f'cluster_experiment_instrusion_mrtree_{args.nodes}_nodes.json')
+if os.environ.get('SLURM_JOB_ID'):
+    save_path = os.path.join(current_path, f'slurm_cluster_experiment_intrusion_mrtree_{args.nodes}_nodes_job{os.environ.get("SLURM_JOB_ID")}.json')
+else:
+    save_path = os.path.join(current_path, f'cluster_experiment_instrusion_mrtree_{args.nodes}_nodes.json')
 logger.info(f"Saving metrics to {save_path}")
 runner.save_metrics(save_path)
 

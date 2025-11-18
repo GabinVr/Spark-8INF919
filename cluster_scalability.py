@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(description='Run cluster experiment')
 parser.add_argument('-n', '--nodes', type=int,
                     help='Number of nodes to test', default=2)
 parser.add_argument('-k', '--k_values', type=int, nargs='+',
-                    help='List of K values for scale factor', default=[1, 2, 4, 8, 16, 32, 64, 128, 256])
+                    help='List of K values for scale factor', default=[1, 2, 4, 8, 32])
 args = parser.parse_args()
 
 logger.info(f"Starting cluster experiment with {args.nodes} nodes and K values: {args.k_values}")
@@ -35,7 +35,10 @@ runner = ClusterExperimentRunner(AdultDataLoader, AdultDataPreprocessor,
 logger.info("Running experiment...")
 runner.run(args.nodes, K=args.k_values)
 
-save_path = os.path.join(current_path, f'cluster_experiment_adult_mrtree_{args.nodes}_nodes.json')
+if os.environ.get('SLURM_JOB_ID'):
+    save_path = os.path.join(current_path, f'cluster_experiment_adult_mrtree_{args.nodes}_nodes_slurm_{os.environ["SLURM_JOB_ID"]}.json')
+else:
+    save_path = os.path.join(current_path, f'cluster_experiment_adult_mrtree_{args.nodes}_nodes.json')  
 logger.info(f"Saving metrics to {save_path}")
 runner.save_metrics(save_path)
 
