@@ -37,7 +37,7 @@ if os.environ.get('SLURM_JOB_ID'):
 else:
     save_path = os.path.join(current_path, f'cluster_experiment_instrusion_mrtree_{args.nodes}_nodes.json')
 logger.info(f"Saving metrics to {save_path}")
-runner.save_metrics(save_path)
+runner.save_trace(save_path)
 
 print("="*40)
 print(f"Résumé des métriques de l'expérience sur le cluster avec {args.nodes} nœuds :")
