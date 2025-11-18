@@ -184,7 +184,16 @@ class AbstractExperimentRunner():
         """
         raise NotImplementedError("Subclasses should implement this method.")
 
-    def save_trace(self, filename):
+    def save_trace(self, filename=None):
+        if filename is None:
+            if 'SLURM_JOB_ID' in os.environ:
+                filename = f"experiment_trace_slurm_{os.environ['SLURM_JOB_ID']}"
+            else:
+                filename = "experiment_trace"
+            i=0
+            while os.path.exists(f"{filename}_{i}.json"):
+                i += 1
+            filename = f"{filename}_{i}.json"
         # Save the metrics to a JSON file to allow easy plotting later
         with open(filename, 'w') as f:
             json.dump(self.metrics, f)
