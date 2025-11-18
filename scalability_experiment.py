@@ -68,7 +68,7 @@ class BaseDataloader():
         return self.target_col
 
 class IntrusionDataloader(BaseDataloader):
-    def __init__(self, spark_session, file_path="./intrusion_data/NF-ToN-IoT-v2-train-shuffled-half,csv"):
+    def __init__(self, spark_session, file_path="./intrusion_data/NF-ToN-IoT-v2-train-shuffled-half.csv"):
         super().__init__(spark_session, file_path)
         self.numeric_cols = None
         self.categorical_cols = None
@@ -78,8 +78,9 @@ class IntrusionDataloader(BaseDataloader):
             .option("inferSchema", "true")\
             .option("header", "true")\
             .csv(self.file_path)
-        data.drop("Label", inplace=True)
-        self.categorical_cols = ["Attack", "IPV4_SRC_ADDR", "IPV4_DST_ADDR"]
+        data=data.drop("Label","IPV4_SRC_ADDR","IPV4_DST_ADDR","SRC_TO_DST_SECOND_BYTES","DST_TO_SRC_SECOND_BYTES")
+
+        self.categorical_cols = ["Attack"]
         self.numeric_cols = [field.name for field in data.schema.fields if field.name not in self.categorical_cols]
         self.set_target_col("Attack")
         return data
@@ -264,6 +265,7 @@ class LocalExperimentRunner(AbstractExperimentRunner):
             subset_dataset = subset_dataset.union(base_subset_data).cache() 
 
         current_scale = K[0]
+        scale = None
         for i in range(len(K)):
             if i < len(K) -1:
                 scale = K[i+1]
@@ -290,7 +292,9 @@ class LocalExperimentRunner(AbstractExperimentRunner):
                 "training_time_seconds": elapsed,
                 "evaluation_time_seconds": elapsed_eval,
             }
-
+            if scale is None:
+                break
+            
             print(f"Dataset size increased FROM {subset_dataset.count()} rows.")
             nb_replications = scale - current_scale
             for _ in range(nb_replications):
@@ -339,12 +343,10 @@ class ClusterExperimentRunner(AbstractExperimentRunner):
             print(f"Using full dataset as base. Size in bytes: {base_size_bytes}")
 
         current_scale = K[0]
-
+        scale = None
         for i in range(len(K)):
             if i < len(K) - 1:
                 scale = K[i + 1]
-            else:
-                scale = current_scale
 
             print(f"\n{'='*50}")
             print(f"Cluster training with scale factor: {current_scale} (nodes = {number_of_nodes})")
@@ -374,6 +376,9 @@ class ClusterExperimentRunner(AbstractExperimentRunner):
                 "number_of_nodes": number_of_nodes,
             }
 
+            if scale is None:
+                break
+
             print(f"Dataset size increased FROM {subset_dataset.count()} rows.")
 
             # Prépare le prochain facteur d'échelle (comme dans LocalExperimentRunner)
@@ -395,7 +400,11 @@ class ClusterExperimentRunner(AbstractExperimentRunner):
         spark_builder.stop_session()
 
 if __name__ == "__main__":
-    runner = LocalExperimentRunner(AdultDataLoader, AdultDataPreprocessor, MRTreeModelTrainer, seed=SEED)
-    runner.run(K=[1, 8, 16, 32, 64])
-    runner.save_trace("local_experiment_trace.json")
+    # runner = LocalExperimentRunner(AdultDataLoader, AdultDataPreprocessor, MRTreeModelTrainer, seed=SEED)
+    # runner.run(K=[1, 8, 16, 32, 64])
+    # runner.save_trace("local_experiment_trace.json")
+    # runner.save_plot()
+    runner = LocalExperimentRunner(IntrusionDataloader, IntrusionPreprocessor, MRTreeModelTrainer, seed=SEED)
+    runner.run(K=[1])
+    runner.save_trace("local_experiment_trace_intrusion.json")
     runner.save_plot()
